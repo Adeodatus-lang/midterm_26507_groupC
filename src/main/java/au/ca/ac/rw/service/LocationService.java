@@ -1,5 +1,6 @@
 package au.ca.ac.rw.service;
 
+import au.ca.ac.rw.dto.*;
 import au.ca.ac.rw.entity.Location;
 import au.ca.ac.rw.entity.Location.LocationType;
 import au.ca.ac.rw.repository.LocationRepository;
@@ -18,9 +19,11 @@ import java.util.stream.Collectors;
 public class LocationService {
 
     private final LocationRepository locationRepository;
+    private final LocationMapperService mapperService;
 
-    public LocationService(LocationRepository locationRepository) {
+    public LocationService(LocationRepository locationRepository, LocationMapperService mapperService) {
         this.locationRepository = locationRepository;
+        this.mapperService = mapperService;
     }
 
     @Transactional
@@ -207,8 +210,118 @@ public class LocationService {
     }
 
     @Transactional(readOnly = true)
-    public List<Location> findAllProvinces() {
-        return locationRepository.findByTypeAndParentIsNull(LocationType.PROVINCE);
+    public List<ProvinceDTO> findAllProvincesDTO() {
+        return locationRepository.findByTypeAndParentIsNull(LocationType.PROVINCE).stream()
+                .map(mapperService::mapToProvinceDTO)
+                .collect(Collectors.toList());
+    }
+
+    @Transactional(readOnly = true)
+    public ProvinceDTO getProvinceWithHierarchyDTO(Long id) {
+        Location province = getFullHierarchy(id);
+        if (province.getType() != LocationType.PROVINCE) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Location is not a province");
+        }
+        return mapperService.mapToProvinceDTO(province);
+    }
+
+    @Transactional(readOnly = true)
+    public ProvinceDTO getProvinceByIdDTO(Long id) {
+        Location province = locationRepository.findByIdWithChildren(id)
+                .orElseThrow(
+                        () -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Province not found with id: " + id));
+
+        if (province.getType() != LocationType.PROVINCE) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Location is not a province");
+        }
+        return mapperService.mapToProvinceDTO(province);
+    }
+
+    @Transactional(readOnly = true)
+    public List<DistrictDTO> findAllDistrictsDTO() {
+        return locationRepository.findByType(LocationType.DISTRICT).stream()
+                .map(mapperService::mapToDistrictDTO)
+                .collect(Collectors.toList());
+    }
+
+    @Transactional(readOnly = true)
+    public List<SectorDTO> findAllSectorsDTO() {
+        return locationRepository.findByType(LocationType.SECTOR).stream()
+                .map(mapperService::mapToSectorDTO)
+                .collect(Collectors.toList());
+    }
+
+    @Transactional(readOnly = true)
+    public List<CellDTO> findAllCellsDTO() {
+        return locationRepository.findByType(LocationType.CELL).stream()
+                .map(mapperService::mapToCellDTO)
+                .collect(Collectors.toList());
+    }
+
+    @Transactional(readOnly = true)
+    public List<VillageDTO> findAllVillagesDTO() {
+        return locationRepository.findByType(LocationType.VILLAGE).stream()
+                .map(mapperService::mapToVillageDTO)
+                .collect(Collectors.toList());
+    }
+
+    @Transactional(readOnly = true)
+    public List<DistrictDTO> findDistrictsByProvinceDTO(Long provinceId) {
+        return locationRepository.findByTypeAndParent_Id(LocationType.DISTRICT, provinceId).stream()
+                .map(mapperService::mapToDistrictDTO)
+                .collect(Collectors.toList());
+    }
+
+    @Transactional(readOnly = true)
+    public DistrictDTO getDistrictByIdDTO(Long id) {
+        Location district = locationRepository.findByIdWithChildren(id)
+                .orElseThrow(
+                        () -> new ResponseStatusException(HttpStatus.NOT_FOUND, "District not found with id: " + id));
+        return mapperService.mapToDistrictDTO(district);
+    }
+
+    @Transactional(readOnly = true)
+    public List<SectorDTO> findSectorsByDistrictDTO(Long districtId) {
+        return locationRepository.findByTypeAndParent_Id(LocationType.SECTOR, districtId).stream()
+                .map(mapperService::mapToSectorDTO)
+                .collect(Collectors.toList());
+    }
+
+    @Transactional(readOnly = true)
+    public SectorDTO getSectorByIdDTO(Long id) {
+        Location sector = locationRepository.findByIdWithChildren(id)
+                .orElseThrow(
+                        () -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Sector not found with id: " + id));
+        return mapperService.mapToSectorDTO(sector);
+    }
+
+    @Transactional(readOnly = true)
+    public List<CellDTO> findCellsBySectorDTO(Long sectorId) {
+        return locationRepository.findByTypeAndParent_Id(LocationType.CELL, sectorId).stream()
+                .map(mapperService::mapToCellDTO)
+                .collect(Collectors.toList());
+    }
+
+    @Transactional(readOnly = true)
+    public CellDTO getCellByIdDTO(Long id) {
+        Location cell = locationRepository.findByIdWithChildren(id)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Cell not found with id: " + id));
+        return mapperService.mapToCellDTO(cell);
+    }
+
+    @Transactional(readOnly = true)
+    public List<VillageDTO> findVillagesByCellDTO(Long cellId) {
+        return locationRepository.findByTypeAndParent_Id(LocationType.VILLAGE, cellId).stream()
+                .map(mapperService::mapToVillageDTO)
+                .collect(Collectors.toList());
+    }
+
+    @Transactional(readOnly = true)
+    public VillageDTO getVillageByIdDTO(Long id) {
+        Location village = locationRepository.findById(id)
+                .orElseThrow(
+                        () -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Village not found with id: " + id));
+        return mapperService.mapToVillageDTO(village);
     }
 
     @Transactional(readOnly = true)

@@ -26,10 +26,7 @@ public class ProvinceController {
 
     @GetMapping
     public ResponseEntity<List<ProvinceDTO>> getAllProvinces() {
-        List<Location> provinces = locationService.findAllProvinces();
-        return ResponseEntity.ok(provinces.stream()
-                .map(mapperService::mapToProvinceDTO)
-                .collect(Collectors.toList()));
+        return ResponseEntity.ok(locationService.findAllProvincesDTO());
     }
 
     @PostMapping
@@ -40,27 +37,17 @@ public class ProvinceController {
         location.setCode(request.getCode());
 
         Location saved = locationService.createLocation(location);
-        return ResponseEntity.ok(mapperService.mapToProvinceDTO(saved));
+        return ResponseEntity.ok(locationService.getProvinceByIdDTO(saved.getId()));
     }
 
     @GetMapping("/{id}")
     public ResponseEntity<ProvinceDTO> getProvinceById(@PathVariable Long id) {
-        Location province = locationService.findByIdWithChildren(id)
-                .orElseThrow(() -> new IllegalArgumentException("Province not found with id: " + id));
-
-        if (province.getType() != LocationType.PROVINCE) {
-            return ResponseEntity.notFound().build();
-        }
-        return ResponseEntity.ok(mapperService.mapToProvinceDTO(province));
+        return ResponseEntity.ok(locationService.getProvinceByIdDTO(id));
     }
 
     @GetMapping("/{id}/with-hierarchy")
     public ResponseEntity<ProvinceDTO> getProvinceWithHierarchy(@PathVariable Long id) {
-        Location province = locationService.getFullHierarchy(id);
-        if (province.getType() != LocationType.PROVINCE) {
-            return ResponseEntity.notFound().build();
-        }
-        return ResponseEntity.ok(mapperService.mapToProvinceDTO(province));
+        return ResponseEntity.ok(locationService.getProvinceWithHierarchyDTO(id));
     }
 
     @PutMapping("/{id}")
@@ -71,7 +58,7 @@ public class ProvinceController {
         location.setCode(locationDetails.getCode());
 
         Location updated = locationService.updateLocation(id, location);
-        return ResponseEntity.ok(mapperService.mapToProvinceDTO(updated));
+        return ResponseEntity.ok(locationService.getProvinceByIdDTO(updated.getId()));
     }
 
     @DeleteMapping("/{id}")

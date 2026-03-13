@@ -30,24 +30,10 @@ public class SectorController {
     private LocationMapperService mapperService;
 
     @GetMapping
-    public ResponseEntity<Map<String, Object>> getAllSectors(
-            @RequestParam(defaultValue = "0") int page,
-            @RequestParam(defaultValue = "10") int size,
-            @RequestParam(defaultValue = "id") String sortBy,
-            @RequestParam(defaultValue = "asc") String sortDir) {
-
-        Sort sort = sortDir.equalsIgnoreCase(Sort.Direction.ASC.name()) ? Sort.by(sortBy).ascending()
-                : Sort.by(sortBy).descending();
-        Pageable pageable = PageRequest.of(page, size, sort);
-
-        Page<Location> sectorPage = locationService.findByType(LocationType.SECTOR, pageable);
-
+    public ResponseEntity<Map<String, Object>> getAllSectors() {
         return ResponseEntity.ok(Map.of(
-                "content",
-                sectorPage.getContent().stream().map(mapperService::mapToSectorDTO).collect(Collectors.toList()),
-                "currentPage", sectorPage.getNumber(),
-                "totalItems", sectorPage.getTotalElements(),
-                "totalPages", sectorPage.getTotalPages()));
+                "content", locationService.findAllSectorsDTO(),
+                "totalItems", 0));
     }
 
     @PostMapping
@@ -64,36 +50,20 @@ public class SectorController {
         }
 
         Location saved = locationService.createLocation(location);
-        return ResponseEntity.ok(mapperService.mapToSectorDTO(saved));
+        return ResponseEntity.ok(locationService.getSectorByIdDTO(saved.getId()));
     }
 
     @GetMapping("/{id}")
     public ResponseEntity<SectorDTO> getSectorById(@PathVariable Long id) {
-        Location sector = locationService.findByIdWithChildren(id)
-                .orElseThrow(() -> new IllegalArgumentException("Sector not found with id: " + id));
-        return ResponseEntity.ok(mapperService.mapToSectorDTO(sector));
+        return ResponseEntity.ok(locationService.getSectorByIdDTO(id));
     }
 
     @GetMapping("/district/{districtId}")
-    public ResponseEntity<Map<String, Object>> getSectorsByDistrict(
-            @PathVariable Long districtId,
-            @RequestParam(defaultValue = "0") int page,
-            @RequestParam(defaultValue = "10") int size,
-            @RequestParam(defaultValue = "id") String sortBy,
-            @RequestParam(defaultValue = "asc") String sortDir) {
-
-        Sort sort = sortDir.equalsIgnoreCase(Sort.Direction.ASC.name()) ? Sort.by(sortBy).ascending()
-                : Sort.by(sortBy).descending();
-        Pageable pageable = PageRequest.of(page, size, sort);
-
-        Page<Location> sectorPage = locationService.findByTypeAndParentId(LocationType.SECTOR, districtId, pageable);
-
+    public ResponseEntity<Map<String, Object>> getSectorsByDistrict(@PathVariable Long districtId) {
+        List<SectorDTO> dtos = locationService.findSectorsByDistrictDTO(districtId);
         return ResponseEntity.ok(Map.of(
-                "content",
-                sectorPage.getContent().stream().map(mapperService::mapToSectorDTO).collect(Collectors.toList()),
-                "currentPage", sectorPage.getNumber(),
-                "totalItems", sectorPage.getTotalElements(),
-                "totalPages", sectorPage.getTotalPages()));
+                "content", dtos,
+                "totalItems", dtos.size()));
     }
 
     @PutMapping("/{id}")
@@ -110,7 +80,7 @@ public class SectorController {
         }
 
         Location updated = locationService.updateLocation(id, location);
-        return ResponseEntity.ok(mapperService.mapToSectorDTO(updated));
+        return ResponseEntity.ok(locationService.getSectorByIdDTO(updated.getId()));
     }
 
     @DeleteMapping("/{id}")

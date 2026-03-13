@@ -30,23 +30,10 @@ public class CellController {
     private LocationMapperService mapperService;
 
     @GetMapping
-    public ResponseEntity<Map<String, Object>> getAllCells(
-            @RequestParam(defaultValue = "0") int page,
-            @RequestParam(defaultValue = "10") int size,
-            @RequestParam(defaultValue = "id") String sortBy,
-            @RequestParam(defaultValue = "asc") String sortDir) {
-
-        Sort sort = sortDir.equalsIgnoreCase(Sort.Direction.ASC.name()) ? Sort.by(sortBy).ascending()
-                : Sort.by(sortBy).descending();
-        Pageable pageable = PageRequest.of(page, size, sort);
-
-        Page<Location> cellPage = locationService.findByType(LocationType.CELL, pageable);
-
+    public ResponseEntity<Map<String, Object>> getAllCells() {
         return ResponseEntity.ok(Map.of(
-                "content", cellPage.getContent().stream().map(mapperService::mapToCellDTO).collect(Collectors.toList()),
-                "currentPage", cellPage.getNumber(),
-                "totalItems", cellPage.getTotalElements(),
-                "totalPages", cellPage.getTotalPages()));
+                "content", locationService.findAllCellsDTO(),
+                "totalItems", 0));
     }
 
     @PostMapping
@@ -63,35 +50,20 @@ public class CellController {
         }
 
         Location saved = locationService.createLocation(location);
-        return ResponseEntity.ok(mapperService.mapToCellDTO(saved));
+        return ResponseEntity.ok(locationService.getCellByIdDTO(saved.getId()));
     }
 
     @GetMapping("/{id}")
     public ResponseEntity<CellDTO> getCellById(@PathVariable Long id) {
-        Location cell = locationService.findByIdWithChildren(id)
-                .orElseThrow(() -> new IllegalArgumentException("Cell not found with id: " + id));
-        return ResponseEntity.ok(mapperService.mapToCellDTO(cell));
+        return ResponseEntity.ok(locationService.getCellByIdDTO(id));
     }
 
     @GetMapping("/sector/{sectorId}")
-    public ResponseEntity<Map<String, Object>> getCellsBySector(
-            @PathVariable Long sectorId,
-            @RequestParam(defaultValue = "0") int page,
-            @RequestParam(defaultValue = "10") int size,
-            @RequestParam(defaultValue = "id") String sortBy,
-            @RequestParam(defaultValue = "asc") String sortDir) {
-
-        Sort sort = sortDir.equalsIgnoreCase(Sort.Direction.ASC.name()) ? Sort.by(sortBy).ascending()
-                : Sort.by(sortBy).descending();
-        Pageable pageable = PageRequest.of(page, size, sort);
-
-        Page<Location> cellPage = locationService.findByTypeAndParentId(LocationType.CELL, sectorId, pageable);
-
+    public ResponseEntity<Map<String, Object>> getCellsBySector(@PathVariable Long sectorId) {
+        List<CellDTO> dtos = locationService.findCellsBySectorDTO(sectorId);
         return ResponseEntity.ok(Map.of(
-                "content", cellPage.getContent().stream().map(mapperService::mapToCellDTO).collect(Collectors.toList()),
-                "currentPage", cellPage.getNumber(),
-                "totalItems", cellPage.getTotalElements(),
-                "totalPages", cellPage.getTotalPages()));
+                "content", dtos,
+                "totalItems", dtos.size()));
     }
 
     @PutMapping("/{id}")
@@ -108,7 +80,7 @@ public class CellController {
         }
 
         Location updated = locationService.updateLocation(id, location);
-        return ResponseEntity.ok(mapperService.mapToCellDTO(updated));
+        return ResponseEntity.ok(locationService.getCellByIdDTO(updated.getId()));
     }
 
     @DeleteMapping("/{id}")

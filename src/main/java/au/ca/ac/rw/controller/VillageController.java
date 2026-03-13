@@ -30,24 +30,10 @@ public class VillageController {
     private LocationMapperService mapperService;
 
     @GetMapping
-    public ResponseEntity<Map<String, Object>> getAllVillages(
-            @RequestParam(defaultValue = "0") int page,
-            @RequestParam(defaultValue = "10") int size,
-            @RequestParam(defaultValue = "id") String sortBy,
-            @RequestParam(defaultValue = "asc") String sortDir) {
-
-        Sort sort = sortDir.equalsIgnoreCase(Sort.Direction.ASC.name()) ? Sort.by(sortBy).ascending()
-                : Sort.by(sortBy).descending();
-        Pageable pageable = PageRequest.of(page, size, sort);
-
-        Page<Location> villagePage = locationService.findByType(LocationType.VILLAGE, pageable);
-
+    public ResponseEntity<Map<String, Object>> getAllVillages() {
         return ResponseEntity.ok(Map.of(
-                "content",
-                villagePage.getContent().stream().map(mapperService::mapToVillageDTO).collect(Collectors.toList()),
-                "currentPage", villagePage.getNumber(),
-                "totalItems", villagePage.getTotalElements(),
-                "totalPages", villagePage.getTotalPages()));
+                "content", locationService.findAllVillagesDTO(),
+                "totalItems", 0));
     }
 
     @PostMapping
@@ -64,36 +50,20 @@ public class VillageController {
         }
 
         Location saved = locationService.createLocation(location);
-        return ResponseEntity.ok(mapperService.mapToVillageDTO(saved));
+        return ResponseEntity.ok(locationService.getVillageByIdDTO(saved.getId()));
     }
 
     @GetMapping("/{id}")
     public ResponseEntity<VillageDTO> getVillageById(@PathVariable Long id) {
-        Location village = locationService.findByIdWithChildren(id)
-                .orElseThrow(() -> new IllegalArgumentException("Village not found with id: " + id));
-        return ResponseEntity.ok(mapperService.mapToVillageDTO(village));
+        return ResponseEntity.ok(locationService.getVillageByIdDTO(id));
     }
 
     @GetMapping("/cell/{cellId}")
-    public ResponseEntity<Map<String, Object>> getVillagesByCell(
-            @PathVariable Long cellId,
-            @RequestParam(defaultValue = "0") int page,
-            @RequestParam(defaultValue = "10") int size,
-            @RequestParam(defaultValue = "id") String sortBy,
-            @RequestParam(defaultValue = "asc") String sortDir) {
-
-        Sort sort = sortDir.equalsIgnoreCase(Sort.Direction.ASC.name()) ? Sort.by(sortBy).ascending()
-                : Sort.by(sortBy).descending();
-        Pageable pageable = PageRequest.of(page, size, sort);
-
-        Page<Location> villagePage = locationService.findByTypeAndParentId(LocationType.VILLAGE, cellId, pageable);
-
+    public ResponseEntity<Map<String, Object>> getVillagesByCell(@PathVariable Long cellId) {
+        List<VillageDTO> dtos = locationService.findVillagesByCellDTO(cellId);
         return ResponseEntity.ok(Map.of(
-                "content",
-                villagePage.getContent().stream().map(mapperService::mapToVillageDTO).collect(Collectors.toList()),
-                "currentPage", villagePage.getNumber(),
-                "totalItems", villagePage.getTotalElements(),
-                "totalPages", villagePage.getTotalPages()));
+                "content", dtos,
+                "totalItems", dtos.size()));
     }
 
     @PutMapping("/{id}")
@@ -110,7 +80,7 @@ public class VillageController {
         }
 
         Location updated = locationService.updateLocation(id, location);
-        return ResponseEntity.ok(mapperService.mapToVillageDTO(updated));
+        return ResponseEntity.ok(locationService.getVillageByIdDTO(updated.getId()));
     }
 
     @DeleteMapping("/{id}")
