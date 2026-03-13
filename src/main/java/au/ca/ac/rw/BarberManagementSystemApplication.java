@@ -10,3 +10,4 @@ public class BarberManagementSystemApplication {
         System.out.println(" Barber Management System Started Successfully!");
     }
 }
+
